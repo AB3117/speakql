@@ -7,7 +7,7 @@ from crud.db_crud import get_user_databases,add_query_history
 from utils.agent import DatabaseAgent  
 from auth.auth_bearer import JWTBearer
 from database import get_session
-
+from utils.visualizer import get_db_structure_json
 router = APIRouter()
 
 @router.post("/generate-sql", response_model=GenerateSQLResponse)
@@ -52,3 +52,20 @@ async def execute_sql(request: ExecuteSQLRequest, session: Session = Depends(get
     
     return ExecuteSQLResponse(status="success", result=execution_result)
 
+
+
+@router.get("/visualize-schema")
+async def visualize_schema(db_id: int, session: Session = Depends(get_session), user: User = Depends(JWTBearer())):
+    """
+    Returns the structure and sample data of all tables in the selected database
+    for frontend visualization.
+    """
+    user_id = int(user['sub'])
+    user_databases = get_user_databases(session, user_id)
+
+    user_db = next((db for db in user_databases if db.id == db_id), None)
+    if not user_db:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Database not found")
+
+    agent = DatabaseAgent(user_db=user_db, debug=True)
+    return get_db_structure_json(agent)
