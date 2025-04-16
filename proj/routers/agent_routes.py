@@ -49,6 +49,8 @@ async def execute_sql(request: ExecuteSQLRequest, session: Session = Depends(get
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=execution_result["error"])
     
     add_query_history(session, request.db_id, request.raw_sql, request.raw_sql)
+    if not isinstance(execution_result, list):
+        execution_result = [execution_result]
     
     return ExecuteSQLResponse(status="success", result=execution_result)
 
