@@ -77,7 +77,7 @@ def add_db(
     return {"msg": "Database added successfully", "db_id": db.id}
 
 
-@app.get("/databases", response_model=list[UserDatabaseRead], dependencies=[Depends(JWTBearer())])
+@app.get("/get_databases", response_model=list[UserDatabaseRead], dependencies=[Depends(JWTBearer())])
 def get_dbs(
     session: Session = Depends(get_session),
     token_data: dict = Depends(JWTBearer())
