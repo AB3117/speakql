@@ -38,7 +38,7 @@ type DatabasesType = {
 };
 
 const token =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzQ0ODMzMDY4fQ.u7cObmcj0IvvMQrg6g08tyBy0wfPS1N4Bp9w0CtgAtE';
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzQ0ODgwNzc5fQ.NmHTa1kj_6K08d90xoIRZW_YDFGlNlbIlmMJ_YLXcUc';
 
 export default function ChatbotPage() {
   const [input, setInput] = useState('');

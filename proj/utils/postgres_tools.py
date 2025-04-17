@@ -83,6 +83,8 @@ class PostgreSQLTools:
         with self.engine.connect() as conn:
             try:
                 result = conn.execute(text(sql), params or {})
+                if not result.returns_rows:
+                    conn.commit()
                 if result.returns_rows:
                     return [dict(row._mapping) for row in result]
                 return {"status": "success", "rows_affected": result.rowcount}
