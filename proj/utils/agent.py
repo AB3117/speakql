@@ -27,12 +27,9 @@ class DatabaseAgent:
             print(f"AI initialization failed: {e}")
             raise
 
+    
     def _clean_sql(self, sql: str) -> str:
-        """Clean and validate SQL"""
-        sql = sql.strip()
-        if not sql.lower().startswith(('select', 'insert', 'update', 'delete', 'create', 'alter')):
-            raise ValueError("Only SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER statements allowed")
-        return sql
+        return sql.strip()
 
     def _handle_function_call(self, function_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
         """Execute the requested database function"""
@@ -51,6 +48,9 @@ class DatabaseAgent:
                 schema = parameters.get("schema", "public")
                 limit = parameters.get("limit", 5)
                 return {"preview": self.tools.preview_data(table_name=table_name, schema=schema, limit=limit)}
+            elif function_name == "count_table_rows":
+                schema = parameters.get("schema", "public")
+                return {"row_counts": self.tools.count_table_rows(schema=schema)}
             else:
                 return {"error": f"Unknown function {function_name}"}
         except Exception as e:
@@ -74,9 +74,11 @@ class DatabaseAgent:
             for table in tables:
                 table_info = self.tools.describe_table(table_name=table, schema=schema)
                 preview = self.tools.preview_data(table_name=table, schema=schema, limit=3)
+                row_count = self.tools.count_rows_in_table(table_name=table, schema=schema)
                 db_structure["tables"][table] = {
                     "structure": table_info,
-                    "sample_data": preview
+                    "sample_data": preview,
+                    "row_count": row_count
                 }
                 
         return db_structure
@@ -99,7 +101,7 @@ class DatabaseAgent:
             
             Generate the most appropriate PostgreSQL query based on the actual database structure above.
             Return ONLY the SQL code, no explanations or markdown.
-            The SQL should be valid for PostgreSQL and match the exact column names and table structure shown above."""
+            The SQL should be valid for PostgreSQL and match the exact column names and table structure shown above take row counts into consideration for insert queries."""
             
             if self.debug:
                 print(f"Sending final prompt to AI...")

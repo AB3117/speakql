@@ -61,6 +61,13 @@ class PostgreSQLTools:
                 return {"comment": comment}
             except:
                 return {}
+    def count_rows_in_table(self, table_name: str, schema: str = 'public') -> int:
+        """Count rows in a specific table"""
+        with self.engine.connect() as conn:
+            result = conn.execute(
+                text(f'SELECT COUNT(*) FROM "{schema}"."{table_name}"')
+            )
+            return result.scalar()
 
     def preview_data(self, table_name: str, schema: str = 'public', limit: int = 5) -> List[Dict[str, Any]]:
         """Preview table data"""
