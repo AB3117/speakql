@@ -12,11 +12,16 @@ import {
 import { motion } from 'framer-motion';
 import axios from 'axios';
 import { API_URL } from '@/App';
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 type QueryResponse = {
   raw_sql: string;
   confirmation_required: boolean;
   message: string;
+  result?: any;
+  status?: string;
+  error?: any;
 };
 
 type UserDatabaseType = {
@@ -38,7 +43,7 @@ type DatabasesType = {
 };
 
 const token =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzQ0ODgwNzc5fQ.NmHTa1kj_6K08d90xoIRZW_YDFGlNlbIlmMJ_YLXcUc';
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzQ0OTEyNjIwfQ.LR2OSDHQZ4orsd7zLY_f7RYu-HesjsVSboYS2KiH2vg';
 
 export default function ChatbotPage() {
   const [input, setInput] = useState('');
@@ -151,20 +156,76 @@ export default function ChatbotPage() {
         },
       );
 
+      console.log(res.data);
+
+      // Create a successful response object with the query results
       const successResponse: QueryResponse = {
         raw_sql: rawSQL,
         confirmation_required: false,
         message: 'Query executed successfully',
+        result: res.data.result,
+        status: res.data.status,
+        error: res.data.error,
       };
 
       setResponses((prev) => [...prev, successResponse]);
-
-      console.log(res.data);
     } catch (error) {
       console.error(error);
+      // Handle failed execution
+      const errorResponse: QueryResponse = {
+        raw_sql: rawSQL,
+        confirmation_required: false,
+        message: `Error executing query: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        status: 'error',
+      };
+      
+      setResponses((prev) => [...prev, errorResponse]);
     } finally {
       setrawSQL('');
     }
+  };
+
+  // Helper function to render query results as a table
+  const renderQueryResults = (result: any) => {
+    if (!result || !Array.isArray(result) || result.length === 0) {
+      return <p className="text-gray-700 italic">No results returned</p>;
+    }
+
+    // Extract column headers from the first result object
+    const headers = Object.keys(result[0]);
+
+    return (
+      <div className="overflow-x-auto mt-3 rounded-lg border border-gray-200">
+        <table className="min-w-full bg-white">
+          <thead className="bg-gray-100">
+            <tr>
+              {headers.map((header, idx) => (
+                <th 
+                  key={idx} 
+                  className="py-2 px-4 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
+                >
+                  {header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {result.map((row: any, rowIdx: number) => (
+              <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                {headers.map((header, colIdx) => (
+                  <td 
+                    key={`${rowIdx}-${colIdx}`} 
+                    className="py-2 px-4 border-b border-gray-200 text-sm"
+                  >
+                    {String(row[header] !== null ? row[header] : 'null')}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
   };
 
   useEffect(() => {
@@ -293,31 +354,60 @@ export default function ChatbotPage() {
         <ScrollArea className="flex-1 px-6 py-4">
           <div className="flex flex-col space-y-4 max-w-4xl mx-auto">
             {prompts.map((prompt, index) => (
-              <>
+              <div key={`conversation-${index}`}>
                 <motion.div
-                  key={`prompt-${index}`}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="max-w-[75%] px-5 py-3 rounded-3xl text-base shadow-md bg-indigo-600 text-white self-end"
+                  className="max-w-[75%] px-5 py-3 rounded-3xl text-base shadow-md bg-indigo-600 text-white self-end ml-auto"
                 >
                   {prompt}
                 </motion.div>
 
                 {responses[index] && (
                   <motion.div
-                    key={`response-${index}`}
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="max-w-[75%] px-5 py-3 rounded-3xl text-base shadow-md bg-gray-100 text-gray-800 self-start whitespace-pre-wrap"
+                    className="max-w-[95%] px-5 py-3 rounded-3xl text-base shadow-md bg-gray-100 text-gray-800 self-start mt-4"
                   >
-                    {responses[index].raw_sql}
-                    <br />
-                    {responses[index].message}
+                    {responses[index].raw_sql && (
+                      <div className="mb-3">
+                        <SyntaxHighlighter
+                          language="sql"
+                          style={oneDark}
+                          customStyle={{
+                            padding: '1rem',
+                            borderRadius: '0.75rem',
+                            marginBottom: '0.5rem',
+                            fontSize: '0.875rem',
+                            lineHeight: '1.5',
+                          }}
+                        >
+                          {responses[index].raw_sql}
+                        </SyntaxHighlighter>
+                      </div>
+                    )}
+                    
+                    <p className="text-gray-700 mb-2">{responses[index].message}</p>
+                    
+                    {/* Display result data as a table if available */}
+                    {responses[index].result && Array.isArray(responses[index].result) && (
+                      <>
+                        <p className="font-medium text-gray-900 mt-3 mb-1">Query Results:</p>
+                        {renderQueryResults(responses[index].result)}
+                      </>
+                    )}
+                    
+                    {/* Display status if available */}
+                    {responses[index].status && (
+                      <p className={`text-sm mt-2 ${responses[index].status === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                        Status: {responses[index].status}
+                      </p>
+                    )}
                   </motion.div>
                 )}
-              </>
+              </div>
             ))}
             <div ref={scrollRef} />
           </div>
@@ -335,14 +425,14 @@ export default function ChatbotPage() {
             <Button
               onClick={requestGenerateQuery}
               className="rounded-full px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white"
-              disabled={selectedDbId == 0}
+              disabled={selectedDbId === 0}
             >
               Send
             </Button>
             <Button
               onClick={requestExecuteSQL}
               className="rounded-full px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white"
-              disabled={selectedDbId == 0 || !rawSQL}
+              disabled={selectedDbId === 0 || !rawSQL}
             >
               Execute SQL
             </Button>

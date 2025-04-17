@@ -29,7 +29,14 @@ class DatabaseAgent:
 
     
     def _clean_sql(self, sql: str) -> str:
-        return sql.strip()
+        sql = sql.strip()  # Strip leading/trailing whitespaces
+    # Remove any starting/ending '''sql or ```sql
+        if sql.startswith("'''sql") or sql.startswith("```sql"):
+            sql = sql[6:]  # Remove the '''sql or ```sql part
+        if sql.endswith("'''") or sql.endswith("```"):
+            sql = sql[:-3]  # Remove the closing block
+        return sql.strip()  #
+            
 
     def _handle_function_call(self, function_name: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
         """Execute the requested database function"""
