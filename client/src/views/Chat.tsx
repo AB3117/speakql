@@ -1,17 +1,17 @@
-import { useState, useRef, useEffect } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { useState, useRef, useEffect } from 'react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { motion } from "framer-motion";
-import axios from "axios";
-import { API_URL } from "@/App";
+} from '@/components/ui/dialog';
+import { motion } from 'framer-motion';
+import axios from 'axios';
+import { API_URL } from '@/App';
 
 type QueryResponse = {
   raw_sql: string;
@@ -37,33 +37,50 @@ type DatabasesType = {
   created_at: string;
 };
 
+const token =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzQ0ODMzMDY4fQ.u7cObmcj0IvvMQrg6g08tyBy0wfPS1N4Bp9w0CtgAtE';
+
 export default function ChatbotPage() {
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
   const [prompts, setPrompts] = useState<string[]>([]);
-  const [rawSQL, setrawSQL] = useState("");
+  const [rawSQL, setrawSQL] = useState('');
   const [responses, setResponses] = useState<QueryResponse[]>([]);
   const [dbConfig, setDbConfig] = useState<UserDatabaseType>({
-    host: "",
-    port: "",
-    db_user: "",
-    db_password: "",
-    db_name: "",
+    host: '',
+    port: '',
+    db_user: '',
+    db_password: '',
+    db_name: '',
   });
 
   const [databases, setDatabases] = useState<DatabasesType[]>([]);
+  const [selectedDbId, setSelectedDbId] = useState<number>(0);
+
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const requestDeleteDatabase = async (id: number) => {
+    try {
+      const res = await axios.delete(`${API_URL}/databases/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      console.log(res.data);
+
+      await requestGetDatabases();
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   const requestGetDatabases = async () => {
     try {
       const res = await axios.get(`${API_URL}/get_databases`, {
         headers: {
-          Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzQ0NzUxNTQ1fQ.I71RpkjH-KzQCVQL2LyO1tmFzscrF6GSirAS9gDWtpg",
+          Authorization: `Bearer ${token}`,
         },
       });
-
-      console.log(res.data);
       setDatabases(res.data);
+      console.log(res.data);
     } catch (error) {
       console.log(error);
     }
@@ -71,15 +88,22 @@ export default function ChatbotPage() {
 
   const requestAddDatabase = async () => {
     try {
-      const res = await axios.post(`${API_URL}/databases`, dbConfig, {
+      await axios.post(`${API_URL}/databases`, dbConfig, {
         headers: {
-          Authorization:
-            "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzQ0NzUxNTQ1fQ.I71RpkjH-KzQCVQL2LyO1tmFzscrF6GSirAS9gDWtpg",
+          Authorization: `Bearer ${token}`,
         },
       });
-      console.log(res.data);
+      await requestGetDatabases();
     } catch (error) {
       console.log(error);
+    } finally {
+      setDbConfig({
+        host: '',
+        port: '',
+        db_user: '',
+        db_password: '',
+        db_name: '',
+      });
     }
   };
 
@@ -92,14 +116,13 @@ export default function ChatbotPage() {
         `${API_URL}/agent/generate-sql`,
         {
           prompt: input,
-          db_id: "2",
+          db_id: selectedDbId,
         },
         {
           headers: {
-            Authorization:
-              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzQ0NzUxNTQ1fQ.I71RpkjH-KzQCVQL2LyO1tmFzscrF6GSirAS9gDWtpg",
+            Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       setrawSQL(res.data.raw_sql);
@@ -107,38 +130,45 @@ export default function ChatbotPage() {
     } catch (error) {
       console.error(error);
     } finally {
-      setInput("");
+      setInput('');
     }
   };
 
   const requestExecuteSQL = async () => {
     try {
-      setPrompts((prev) => [...prev, "Yes"]);
+      setPrompts((prev) => [...prev, 'Yes']);
 
       const res = await axios.post(
-        `${API_URL}/agent/exectue-sql`,
+        `${API_URL}/agent/execute-sql`,
         {
           raw_sql: rawSQL,
-          db_id: "2",
+          db_id: selectedDbId,
         },
         {
           headers: {
-            Authorization:
-              "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzQ0NzUxNTQ1fQ.I71RpkjH-KzQCVQL2LyO1tmFzscrF6GSirAS9gDWtpg",
+            Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
+
+      const successResponse: QueryResponse = {
+        raw_sql: rawSQL,
+        confirmation_required: false,
+        message: 'Query executed successfully',
+      };
+
+      setResponses((prev) => [...prev, successResponse]);
 
       console.log(res.data);
     } catch (error) {
       console.error(error);
     } finally {
-      setInput("");
+      setrawSQL('');
     }
   };
 
   useEffect(() => {
-    scrollRef.current?.scrollIntoView({ behavior: "smooth" });
+    scrollRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [prompts, responses]);
 
   useEffect(() => {
@@ -148,7 +178,12 @@ export default function ChatbotPage() {
   return (
     <div className="flex flex-col h-screen w-screen bg-gradient-to-br from-indigo-100 to-white">
       <header className="px-6 py-4 shadow-md bg-white z-10 flex justify-between items-center">
-        <h1 className="text-4xl font-bold drop-shadow-sm">SpeakQL</h1>
+        <h1 className="text-4xl font-bold drop-shadow-sm">
+          SpeakQL
+          <span className="text-lg text-neutral-500 italic font-medium mx-4">
+            ({selectedDbId !== 0 && databases.find((db) => db.id === selectedDbId)?.db_name})
+          </span>
+        </h1>
 
         <div className="flex gap-4">
           {/* Configure DB Dialog */}
@@ -165,44 +200,35 @@ export default function ChatbotPage() {
               <Input
                 placeholder="Host"
                 value={dbConfig.host}
-                onChange={(e) =>
-                  setDbConfig({ ...dbConfig, host: e.target.value })
-                }
+                onChange={(e) => setDbConfig({ ...dbConfig, host: e.target.value })}
               />
               <Input
                 placeholder="Port"
                 value={dbConfig.port}
-                onChange={(e) =>
-                  setDbConfig({ ...dbConfig, port: e.target.value })
-                }
+                onChange={(e) => setDbConfig({ ...dbConfig, port: e.target.value })}
               />
               <Input
                 placeholder="User"
                 value={dbConfig.db_user}
-                onChange={(e) =>
-                  setDbConfig({ ...dbConfig, db_user: e.target.value })
-                }
+                onChange={(e) => setDbConfig({ ...dbConfig, db_user: e.target.value })}
               />
               <Input
                 placeholder="Password"
                 type="password"
                 value={dbConfig.db_password}
-                onChange={(e) =>
-                  setDbConfig({ ...dbConfig, db_password: e.target.value })
-                }
+                onChange={(e) => setDbConfig({ ...dbConfig, db_password: e.target.value })}
               />
               <Input
                 placeholder="Database Name"
                 value={dbConfig.db_name}
-                onChange={(e) =>
-                  setDbConfig({ ...dbConfig, db_name: e.target.value })
-                }
+                onChange={(e) => setDbConfig({ ...dbConfig, db_name: e.target.value })}
               />
 
               <Button
                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-                onClick={requestAddDatabase}>
-                Connect
+                onClick={requestAddDatabase}
+              >
+                Add database
               </Button>
             </DialogContent>
           </Dialog>
@@ -218,13 +244,42 @@ export default function ChatbotPage() {
               <DialogHeader>
                 <DialogTitle>Connected Databases</DialogTitle>
               </DialogHeader>
-              <ul className="list-disc list-inside space-y-1">
+              <ul className="space-y-2">
                 {databases.length === 0 ? (
                   <p>No databases found.</p>
                 ) : (
                   databases.map((db) => (
-                    <li key={db.id}>
-                      <strong>{db.db_name}</strong> — {db.host}:{db.port}
+                    <li
+                      key={db.id}
+                      className="flex items-center justify-between bg-gray-50 px-4 py-2 rounded-lg shadow-sm"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div>
+                          <strong>{db.db_name}</strong> — {db.host}:{db.port}
+                        </div>
+                        {selectedDbId === db.id && (
+                          <span className="text-sm text-gray-500 italic">(selected)</span>
+                        )}
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="bg-green-500 hover:bg-green-600 text-white px-3"
+                          onClick={() => {
+                            setSelectedDbId(db.id);
+                          }}
+                        >
+                          Select
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="bg-red-500 hover:bg-red-600 text-white px-3"
+                          onClick={() => requestDeleteDatabase(db.id)}
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </li>
                   ))
                 )}
@@ -244,7 +299,8 @@ export default function ChatbotPage() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3 }}
-                  className="max-w-[75%] px-5 py-3 rounded-3xl text-base shadow-md bg-indigo-600 text-white self-end">
+                  className="max-w-[75%] px-5 py-3 rounded-3xl text-base shadow-md bg-indigo-600 text-white self-end"
+                >
                   {prompt}
                 </motion.div>
 
@@ -254,7 +310,8 @@ export default function ChatbotPage() {
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3 }}
-                    className="max-w-[75%] px-5 py-3 rounded-3xl text-base shadow-md bg-gray-100 text-gray-800 self-start whitespace-pre-wrap">
+                    className="max-w-[75%] px-5 py-3 rounded-3xl text-base shadow-md bg-gray-100 text-gray-800 self-start whitespace-pre-wrap"
+                  >
                     {responses[index].raw_sql}
                     <br />
                     {responses[index].message}
@@ -272,17 +329,21 @@ export default function ChatbotPage() {
               placeholder="Type a message..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && requestGenerateQuery()}
+              onKeyDown={(e) => e.key === 'Enter' && requestGenerateQuery()}
               className="flex-1 border-gray-300 rounded-full px-4 py-2 shadow-sm"
             />
             <Button
               onClick={requestGenerateQuery}
-              className="rounded-full px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white">
+              className="rounded-full px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white"
+              disabled={selectedDbId == 0}
+            >
               Send
             </Button>
             <Button
               onClick={requestExecuteSQL}
-              className="rounded-full px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white">
+              className="rounded-full px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white"
+              disabled={selectedDbId == 0 || !rawSQL}
+            >
               Execute SQL
             </Button>
           </div>
