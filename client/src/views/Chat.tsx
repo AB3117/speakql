@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
@@ -12,10 +11,17 @@ import {
 } from '@/components/ui/dialog';
 import { motion } from 'framer-motion';
 import axios from 'axios';
-import { API_URL } from '@/App';
+import { API_URL } from '@/constants';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { Clipboard, Check, Download, RefreshCw, Copy, Edit2, Save } from 'lucide-react';
+import { Check, Download, RefreshCw, Copy, Edit2, Save } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import useAuth from '@/hooks/useAuth';
 
 type QueryResponse = {
   raw_sql: string;
@@ -51,13 +57,12 @@ type QueryHistoryItem = {
   timestamp: string;
 };
 
-const token =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzQ0OTE3NDkwfQ.6oJaR4ztd8SU0RwPTYIACupA9vxNif64563-sXtZeec';
+const token = localStorage.getItem('token');
 
 export default function ChatbotPage() {
   const [input, setInput] = useState('');
   const [prompts, setPrompts] = useState<string[]>([]);
-  const [rawSQL, setrawSQL] = useState('');
+  const [rawSQL, setrawSQL] = useState('npm i --save-dev @types/react-syntax-highlighte');
   const [responses, setResponses] = useState<QueryResponse[]>([]);
   const [dbConfig, setDbConfig] = useState<UserDatabaseType>({
     host: '',
@@ -77,6 +82,7 @@ export default function ChatbotPage() {
 
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { requestLogout } = useAuth();
 
   // Function to scroll to bottom
   const scrollToBottom = () => {
@@ -162,14 +168,14 @@ export default function ChatbotPage() {
       );
 
       setrawSQL(res.data.raw_sql);
-      
+
       const response = {
         ...res.data,
         timestamp: new Date().toISOString(),
       };
-      
+
       setResponses((prev) => [...prev, response]);
-      
+
       // Add to query history
       setQueryHistory((prev) => [
         ...prev,
@@ -179,7 +185,6 @@ export default function ChatbotPage() {
           timestamp: new Date().toISOString(),
         },
       ]);
-      
     } catch (error) {
       console.error(error);
     } finally {
@@ -221,7 +226,7 @@ export default function ChatbotPage() {
       };
 
       setResponses((prev) => [...prev, successResponse]);
-      
+
       // Add to query history
       setQueryHistory((prev) => [
         ...prev,
@@ -231,18 +236,19 @@ export default function ChatbotPage() {
           timestamp: new Date().toISOString(),
         },
       ]);
-      
     } catch (error) {
       console.error(error);
       // Handle failed execution
       const errorResponse: QueryResponse = {
         raw_sql: sql || rawSQL,
         confirmation_required: false,
-        message: `Error executing query: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `Error executing query: ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`,
         status: 'error',
         timestamp: new Date().toISOString(),
       };
-      
+
       setResponses((prev) => [...prev, errorResponse]);
     } finally {
       setrawSQL('');
@@ -279,12 +285,12 @@ export default function ChatbotPage() {
       };
       setResponses(updatedResponses);
     }
-    
+
     // Update rawSQL if this is the last SQL being edited
     if (index === responses.length - 1) {
       setrawSQL(editedSql);
     }
-    
+
     // Exit edit mode
     setIsEditingSql(false);
     setEditingSqlIndex(null);
@@ -294,23 +300,23 @@ export default function ChatbotPage() {
   // Export results as CSV
   const exportResultsAsCSV = (result: any[]) => {
     if (!result || result.length === 0) return;
-    
+
     const headers = Object.keys(result[0]);
     const csvRows = [
       headers.join(','),
-      ...result.map(row => 
-        headers.map(header => 
-          typeof row[header] === 'string' ? `"${row[header]}"` : row[header]
-        ).join(',')
-      )
+      ...result.map((row) =>
+        headers
+          .map((header) => (typeof row[header] === 'string' ? `"${row[header]}"` : row[header]))
+          .join(','),
+      ),
     ];
-    
+
     const csvContent = csvRows.join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `query_results_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute('download', `query_results_${new Date().toISOString().slice(0, 10)}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -342,7 +348,7 @@ export default function ChatbotPage() {
       <div className="mt-3 rounded-lg border border-gray-200">
         <div className="flex justify-between items-center p-2 bg-gray-50 border-b border-gray-200">
           <span className="font-medium text-gray-700">Query Results ({result.length} rows)</span>
-          <Button 
+          <Button
             size="sm"
             variant="outline"
             className="text-xs flex items-center gap-1"
@@ -356,8 +362,8 @@ export default function ChatbotPage() {
             <thead className="bg-gray-100 sticky top-0">
               <tr>
                 {headers.map((header, idx) => (
-                  <th 
-                    key={idx} 
+                  <th
+                    key={idx}
                     className="py-2 px-4 border-b border-gray-200 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"
                   >
                     {header}
@@ -369,8 +375,8 @@ export default function ChatbotPage() {
               {result.map((row: any, rowIdx: number) => (
                 <tr key={rowIdx} className={rowIdx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                   {headers.map((header, colIdx) => (
-                    <td 
-                      key={`${rowIdx}-${colIdx}`} 
+                    <td
+                      key={`${rowIdx}-${colIdx}`}
                       className="py-2 px-4 border-b border-gray-200 text-sm"
                     >
                       {String(row[header] !== null ? row[header] : 'null')}
@@ -399,123 +405,145 @@ export default function ChatbotPage() {
         <h1 className="text-4xl font-bold drop-shadow-sm">
           SpeakQL
           <span className="text-lg text-neutral-500 italic font-medium mx-4">
-            {selectedDbId !== 0 && databases.find((db) => db.id === selectedDbId)?.db_name 
-              ? `(${databases.find((db) => db.id === selectedDbId)?.db_name})` 
+            {selectedDbId !== 0 && databases.find((db) => db.id === selectedDbId)?.db_name
+              ? `(${databases.find((db) => db.id === selectedDbId)?.db_name})`
               : '(No database selected)'}
           </span>
         </h1>
 
         <div className="flex gap-4">
-          {/* Configure DB Dialog */}
-          <Dialog>
-            <DialogTrigger asChild>
+          {/* Main Dropdown Menu for Actions */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
               <Button className="bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg px-4 py-2">
-                Configure DB
+                Actions
               </Button>
-            </DialogTrigger>
-            <DialogContent className="space-y-4">
-              <DialogHeader>
-                <DialogTitle>Database Configuration</DialogTitle>
-              </DialogHeader>
-              <Input
-                placeholder="Host"
-                value={dbConfig.host}
-                onChange={(e) => setDbConfig({ ...dbConfig, host: e.target.value })}
-              />
-              <Input
-                placeholder="Port"
-                value={dbConfig.port}
-                onChange={(e) => setDbConfig({ ...dbConfig, port: e.target.value })}
-              />
-              <Input
-                placeholder="User"
-                value={dbConfig.db_user}
-                onChange={(e) => setDbConfig({ ...dbConfig, db_user: e.target.value })}
-              />
-              <Input
-                placeholder="Password"
-                type="password"
-                value={dbConfig.db_password}
-                onChange={(e) => setDbConfig({ ...dbConfig, db_password: e.target.value })}
-              />
-              <Input
-                placeholder="Database Name"
-                value={dbConfig.db_name}
-                onChange={(e) => setDbConfig({ ...dbConfig, db_name: e.target.value })}
-              />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="space-y-2">
+              {/* Configure DB Button */}
+              <DropdownMenuItem onClick={(e) => e.preventDefault()}>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className="w-full bg-indigo-500 hover:bg-indigo-600 text-white">
+                      Configure DB
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="space-y-4">
+                    <DialogHeader>
+                      <DialogTitle>Database Configuration</DialogTitle>
+                    </DialogHeader>
+                    <Input
+                      placeholder="Host"
+                      value={dbConfig.host}
+                      onChange={(e) => setDbConfig({ ...dbConfig, host: e.target.value })}
+                    />
+                    <Input
+                      placeholder="Port"
+                      value={dbConfig.port}
+                      onChange={(e) => setDbConfig({ ...dbConfig, port: e.target.value })}
+                    />
+                    <Input
+                      placeholder="User"
+                      value={dbConfig.db_user}
+                      onChange={(e) => setDbConfig({ ...dbConfig, db_user: e.target.value })}
+                    />
+                    <Input
+                      placeholder="Password"
+                      type="password"
+                      value={dbConfig.db_password}
+                      onChange={(e) => setDbConfig({ ...dbConfig, db_password: e.target.value })}
+                    />
+                    <Input
+                      placeholder="Database Name"
+                      value={dbConfig.db_name}
+                      onChange={(e) => setDbConfig({ ...dbConfig, db_name: e.target.value })}
+                    />
 
-              <Button
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
-                onClick={requestAddDatabase}
-                disabled={loading}
-              >
-                {loading ? 'Adding...' : 'Add database'}
-              </Button>
-            </DialogContent>
-          </Dialog>
-
-          {/* View Databases Dialog */}
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg px-4 py-2">
-                View Databases
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="space-y-4">
-              <DialogHeader>
-                <DialogTitle>Connected Databases</DialogTitle>
-              </DialogHeader>
-              <ul className="space-y-2">
-                {databases.length === 0 ? (
-                  <p>No databases found.</p>
-                ) : (
-                  databases.map((db) => (
-                    <li
-                      key={db.id}
-                      className="flex items-center justify-between bg-gray-50 px-4 py-2 rounded-lg shadow-sm"
+                    <Button
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+                      onClick={requestAddDatabase}
+                      disabled={loading}
                     >
-                      <div className="flex items-center gap-2">
-                        <div>
-                          <strong>{db.db_name}</strong> — {db.host}:{db.port}
-                        </div>
-                        {selectedDbId === db.id && (
-                          <span className="text-sm text-gray-500 italic">(selected)</span>
-                        )}
-                      </div>
+                      {loading ? 'Adding...' : 'Add database'}
+                    </Button>
+                  </DialogContent>
+                </Dialog>
+              </DropdownMenuItem>
 
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          className="bg-green-500 hover:bg-green-600 text-white px-3"
-                          onClick={() => {
-                            setSelectedDbId(db.id);
-                          }}
-                        >
-                          Select
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="bg-red-500 hover:bg-red-600 text-white px-3"
-                          onClick={() => requestDeleteDatabase(db.id)}
-                          disabled={loading}
-                        >
-                          {loading ? 'Deleting...' : 'Delete'}
-                        </Button>
-                      </div>
-                    </li>
-                  ))
-                )}
-              </ul>
-            </DialogContent>
-          </Dialog>
+              {/* View Databases Button */}
+              <DropdownMenuItem onClick={(e) => e.preventDefault()}>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800">
+                      View Databases
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="space-y-4">
+                    <DialogHeader>
+                      <DialogTitle>Connected Databases</DialogTitle>
+                    </DialogHeader>
+                    <ul className="space-y-2">
+                      {databases.length === 0 ? (
+                        <p>No databases found.</p>
+                      ) : (
+                        databases.map((db) => (
+                          <li
+                            key={db.id}
+                            className="flex items-center justify-between bg-gray-50 px-4 py-2 rounded-lg shadow-sm"
+                          >
+                            <div className="flex items-center gap-2">
+                              <div>
+                                <strong>{db.db_name}</strong> — {db.host}:{db.port}
+                              </div>
+                              {selectedDbId === db.id && (
+                                <span className="text-sm text-gray-500 italic">(selected)</span>
+                              )}
+                            </div>
 
-          {/* Clear Conversation Button */}
-          <Button 
-            className="bg-gray-200 hover:bg-gray-300 text-gray-800 rounded-lg px-4 py-2"
-            onClick={clearConversation}
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                className="bg-green-500 hover:bg-green-600 text-white px-3"
+                                onClick={() => {
+                                  setSelectedDbId(db.id);
+                                }}
+                              >
+                                Select
+                              </Button>
+                              <Button
+                                size="sm"
+                                className="bg-red-500 hover:bg-red-600 text-white px-3"
+                                onClick={() => requestDeleteDatabase(db.id)}
+                                disabled={loading}
+                              >
+                                {loading ? 'Deleting...' : 'Delete'}
+                              </Button>
+                            </div>
+                          </li>
+                        ))
+                      )}
+                    </ul>
+                  </DialogContent>
+                </Dialog>
+              </DropdownMenuItem>
+
+              {/* Clear Chat Button */}
+              <DropdownMenuItem onClick={(e) => e.preventDefault()}>
+                <Button
+                  className="w-full bg-red-500 hover:bg-red-600 text-white"
+                  onClick={clearConversation}
+                >
+                  <RefreshCw size={16} className="mr-2 test-white" />
+                  Clear Chat
+                </Button>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            className="bg-red-500 hover:bg-red-600 text-white rounded-lg px-4 py-2"
+            onClick={requestLogout}
           >
-            <RefreshCw size={16} className="mr-2" />
-            Clear Chat
+            Log Out
           </Button>
         </div>
       </header>
@@ -596,11 +624,7 @@ export default function ChatbotPage() {
                                   className="h-8 w-8 rounded-full bg-gray-800 bg-opacity-50 hover:bg-opacity-70 text-white"
                                   onClick={() => copyToClipboard(responses[index].raw_sql, index)}
                                 >
-                                  {copiedIndex === index ? (
-                                    <Check size={16} />
-                                  ) : (
-                                    <Copy size={16} />
-                                  )}
+                                  {copiedIndex === index ? <Check size={16} /> : <Copy size={16} />}
                                 </Button>
                               </div>
                               <SyntaxHighlighter
@@ -620,34 +644,42 @@ export default function ChatbotPage() {
                           )}
                         </div>
                       )}
-                      
+
                       <p className="text-gray-700 mb-2">{responses[index].message}</p>
-                      
+
                       {/* Display result data as a table if available */}
-                      {responses[index].result && Array.isArray(responses[index].result) && (
-                        renderQueryResults(responses[index].result)
-                      )}
-                      
+                      {responses[index].result &&
+                        Array.isArray(responses[index].result) &&
+                        renderQueryResults(responses[index].result)}
+
                       {/* Display status if available */}
                       {responses[index].status && (
-                        <p className={`text-sm mt-2 ${responses[index].status === 'success' ? 'text-green-600' : 'text-red-600'}`}>
+                        <p
+                          className={`text-sm mt-2 ${
+                            responses[index].status === 'success'
+                              ? 'text-green-600'
+                              : 'text-red-600'
+                          }`}
+                        >
                           Status: {responses[index].status}
                         </p>
                       )}
-                      
+
                       {/* Add "Execute This SQL" button for edited SQL */}
-                      {index === responses.length - 1 && responses[index].raw_sql && !isEditingSql && (
-                        <div className="mt-3">
-                          <Button
-                            size="sm"
-                            className="bg-indigo-500 hover:bg-indigo-600 text-white"
-                            onClick={() => requestExecuteSQL(responses[index].raw_sql)}
-                            disabled={loading}
-                          >
-                            Execute This SQL
-                          </Button>
-                        </div>
-                      )}
+                      {index === responses.length - 1 &&
+                        responses[index].raw_sql &&
+                        !isEditingSql && (
+                          <div className="mt-3">
+                            <Button
+                              size="sm"
+                              className="bg-indigo-500 hover:bg-indigo-600 text-white"
+                              onClick={() => requestExecuteSQL(responses[index].raw_sql)}
+                              disabled={loading}
+                            >
+                              Execute This SQL
+                            </Button>
+                          </div>
+                        )}
                     </motion.div>
                   )}
                 </div>
@@ -660,7 +692,7 @@ export default function ChatbotPage() {
         <div className="flex items-center gap-3 px-6 py-4 border-t bg-white shadow-inner">
           <div className="flex w-full max-w-4xl mx-auto gap-3">
             <Input
-              placeholder={selectedDbId === 0 ? "Select a database first..." : "Type a message..."}
+              placeholder={selectedDbId === 0 ? 'Select a database first...' : 'Type a message...'}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
