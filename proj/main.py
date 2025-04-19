@@ -11,11 +11,14 @@ from crud.db_crud import (
     get_user_databases,
     update_user_database,
     delete_user_database,
+    get_query_history_by_database,
 )
+from crud.db_crud import get_user_databases
 
 from schemas.user_schemas import UserCreate, UserRead, UserLogin
 from schemas.db_schemas import UserDatabaseCreate, UserDatabaseUpdate, UserDatabaseRead
-
+from typing import List
+from schemas.query_schemas import *
 app = FastAPI()
 
 # CORS
@@ -112,7 +115,21 @@ def delete_db(
         raise HTTPException(status_code=404, detail="Database not found or unauthorized")
     return {"msg": "Database deleted successfully"}
 
+@app.get("/query-history/{db_id}", response_model=List[QueryHistoryRead], dependencies=[Depends(JWTBearer())])
+def get_query_history(
+    db_id: int,
+    session: Session = Depends(get_session),
+    token_data: dict = Depends(JWTBearer())
+):
+    user_id = int(token_data["sub"])
 
+    # Ensure user has access to the database
+    user_dbs = get_user_databases(session, user_id)
+    if not any(db.id == db_id for db in user_dbs):
+        raise HTTPException(status_code=403, detail="Forbidden: Database not accessible")
+
+    query_history = get_query_history_by_database(session, db_id)
+    return [QueryHistoryRead.model_validate(qh) for qh in query_history]
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

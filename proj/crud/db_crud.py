@@ -4,7 +4,7 @@ from sqlmodel import Session, select
 from models.db_model import UserDatabase
 from models.query_model import QueryHistory
 from utils.encryption import encrypt_password, decrypt_password
-
+from typing import List
 from schemas.db_schemas import UserDatabaseCreate, UserDatabaseUpdate
 
 
@@ -94,3 +94,8 @@ def delete_all_query_history_for_db(session: Session, db_id: int, user_id: int):
     session.commit()
     return True
 
+
+def get_query_history_by_database(session: Session, db_id: int) -> List[QueryHistory]:
+    return session.exec(
+        select(QueryHistory).where(QueryHistory.user_database_id == db_id)
+    ).all()
