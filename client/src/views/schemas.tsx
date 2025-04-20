@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import ERDiagramView from './ERDiagram'; // Import the ERDiagram component
+import { useNavigate } from 'react-router-dom';
 
 export default function SchemaVisualizationPage() {
   const [schemaData, setSchemaData] = useState(null);
@@ -24,9 +26,10 @@ export default function SchemaVisualizationPage() {
   const [databases, setDatabases] = useState([]);
   const [zoom, setZoom] = useState(1);
   const [expandedTables, setExpandedTables] = useState({});
-  const [activeTab, setActiveTab] = useState('visualization'); // 'visualization' or 'raw'
+  const [activeTab, setActiveTab] = useState('visualization'); // 'visualization', 'erdiagram', or 'raw'
   
   const token = localStorage.getItem('token');
+  const navigate = useNavigate();
 
   // Toggle table expansion
   const toggleTableExpansion = (tableName) => {
@@ -494,6 +497,16 @@ export default function SchemaVisualizationPage() {
             >
               <ZoomOut className="w-5 h-5" />
             </Button>
+             <Button
+            size="sm" 
+            className="bg-gray-700 hover:bg-indigo-500 text-gray-300"
+            onClick={() => navigate('/chat')}
+
+          >
+             DB.Chat
+          </Button>
+
+
           </div>
         </div>
       </header>
@@ -506,6 +519,12 @@ export default function SchemaVisualizationPage() {
             onClick={() => setActiveTab('visualization')}
           >
             Visual Schema
+          </button>
+          <button
+            className={`px-4 py-2 font-medium text-sm ${activeTab === 'erdiagram' ? 'text-indigo-300 border-b-2 border-indigo-500' : 'text-gray-400 hover:text-gray-200'}`}
+            onClick={() => setActiveTab('erdiagram')}
+          >
+            ER Diagram
           </button>
           <button
             className={`px-4 py-2 font-medium text-sm ${activeTab === 'raw' ? 'text-indigo-300 border-b-2 border-indigo-500' : 'text-gray-400 hover:text-gray-200'}`}
@@ -544,16 +563,17 @@ export default function SchemaVisualizationPage() {
                 <div className="flex gap-2">
                   <Button 
                     size="sm" 
-                    variant="outline" 
-                    className="text-xs border-gray-600 hover:bg-gray-700 text-gray-300"
+                    className="bg-gray-700 hover:bg-gray-600 text-gray-300"
                     onClick={expandAllTables}
-                  >
+                    title="Expand All"
+                    >
                     Expand All
                   </Button>
+
                   <Button 
                     size="sm" 
-                    variant="outline"
-                    className="text-xs border-gray-600 hover:bg-gray-700 text-gray-300"
+                    
+                    className="bg-gray-700 hover:bg-gray-600 text-gray-300"
                     onClick={collapseAllTables}
                   >
                     Collapse All
@@ -608,6 +628,15 @@ export default function SchemaVisualizationPage() {
               ))}
             </div>
           </div>
+        ) : activeTab === 'erdiagram' ? (
+          // ER Diagram View
+          <ERDiagramView 
+            schemaData={schemaData}
+            zoom={zoom}
+            loading={loading}
+            expandedTables={expandedTables}
+            toggleTableExpansion={toggleTableExpansion}
+          />
         ) : (
           // Raw JSON View
           <div className="bg-gray-800 rounded-lg border border-gray-700 p-4">

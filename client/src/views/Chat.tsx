@@ -561,7 +561,8 @@ export default function ChatbotPage() {
             Log Out
           </Button>
           <Button
-            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2"
+            size="sm" 
+            className="bg-gray-700 hover:bg-indigo-500 text-gray-300"
             onClick={() => navigate('/schemas')}
 
           >

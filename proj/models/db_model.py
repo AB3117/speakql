@@ -14,5 +14,5 @@ class UserDatabase(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
     owner: "User" = Relationship(back_populates="databases")
-    history: List["QueryHistory"] = Relationship(back_populates="database")
+    history: List["QueryHistory"] = Relationship(back_populates="database", sa_relationship_kwargs={"cascade": "all, delete-orphan"})
 

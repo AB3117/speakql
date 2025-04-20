@@ -130,6 +130,8 @@ def get_query_history(
 
     query_history = get_query_history_by_database(session, db_id)
     return [QueryHistoryRead.model_validate(qh) for qh in query_history]
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

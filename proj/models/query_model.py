@@ -12,5 +12,7 @@ class QueryHistory(SQLModel, table=True):
     error_message: Optional[str] = None
     executed_at: datetime = Field(default_factory=datetime.utcnow)
 
-    database: "UserDatabase" = Relationship(back_populates="history")
-
+    database: "UserDatabase" = Relationship(
+        back_populates="history",
+        sa_relationship_kwargs={"passive_deletes": True}
+    ) 
