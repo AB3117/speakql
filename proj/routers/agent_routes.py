@@ -68,6 +68,7 @@ async def visualize_schema(db_id: int, session: Session = Depends(get_session), 
     user_db = next((db for db in user_databases if db.id == db_id), None)
     if not user_db:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Database not found")
-
+    
     agent = DatabaseAgent(user_db=user_db, debug=True)
+    print(get_db_structure_json(agent))
     return get_db_structure_json(agent)

@@ -22,7 +22,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import useAuth from '@/hooks/useAuth';
-
+import { useNavigate } from 'react-router-dom';
 type QueryResponse = {
   raw_sql: string;
   confirmation_required: boolean;
@@ -85,7 +85,7 @@ export default function ChatbotPage() {
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { requestLogout } = useAuth();
-
+  const navigate = useNavigate();
   // Function to scroll to bottom
   const scrollToBottom = () => {
     if (messagesEndRef.current) {
@@ -560,6 +560,14 @@ export default function ChatbotPage() {
           >
             Log Out
           </Button>
+          <Button
+            className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2"
+            onClick={() => navigate('/schemas')}
+
+          >
+             view schema
+          </Button>
+
         </div>
       </header>
 

@@ -5,7 +5,7 @@ import SignupPage from './views/Signup';
 import ProtectLayout from './layouts/ProtectLayout';
 import HomePage from './views/Home';
 import QueryHistoryPage from './views/QueryHistoryPage'; // Import the new component
-
+import Schemas from './views/schemas';
 const router = createBrowserRouter([
   {
     path: '/',
@@ -21,6 +21,17 @@ const router = createBrowserRouter([
       },
     ],
   },
+  {
+    path: '/schemas',
+    element: <ProtectLayout />, // Protect the entire /chat route
+    children: [
+      {
+        path: '', // Empty path means it will match the /chat route itself
+        element: <Schemas />, // The protected Chat component
+      },
+    ],
+  },
+
   {
     path: '/query-history',
     element: <ProtectLayout />, // Protect this route as well
